@@ -1,44 +1,40 @@
-import flet as ft
+import tkinter as tk
+from tkinter import ttk
 
+def test(e):
+    print(f"{e}が選択されました")
+    label["text"] = e
 
-def main(page: ft.Page):
-    example = "初期テキスト"
-    def test(e):
-        global example
-        example = "改変テキスト"
-        t2.value = example
-        t2.update()
-        print(example)
+# tkオブジェクトの作成
+root = tk.Tk()
+root.title("PasswordManager") #ウィンドウのタイトルを設定
+root.geometry("640x360") #ウィンドウのサイズを設定
+root.resizable(False, False) #ウィンドウサイズの固定
 
-    page.title = "PasswordManager"  # タイトル
-    page.window.width = 640  # 幅
-    page.window.height = 480  # 高さ
-    page.theme = ft.Theme(color_scheme_seed="blue", use_material3=False)
-    page.window.resizable = False  # ウィンドウサイズ変更可否
+# フレームを作成して配置
+topFrame = tk.Frame(root, bg="green")
+bottomFrame = tk.Frame(root, borderwidth=1, bg="blue")
+topFrame.pack(fill="x")
+bottomFrame.pack(side=tk.BOTTOM, fill="x")
 
-    # 部品を配置する
-    
-    mainPage = ft.Column(
-            [
-                ft.Row(
-                    [
-                        ft.Text("ここは2行目"),
-                        ft.TextField(hint_text="文字を入力してください"),
-                    ],
-                    tight=True,
-                ),
-                ft.Row(
-                    [
-                        ft.ElevatedButton("検索", on_click=test, icon=ft.icons.SEARCH),
-                        ft.ElevatedButton("クリア", icon=ft.icons.DELETE)
-                    ]
-                )
-            ],
-            tight=True, # 水平方向の隙間をどうするか。デフォルトはFalseですべての要素に余白を与える。
-            expand=True, # 利用可能なスペースを埋めるようにするか。
-        )
-    t2 = ft.Text(f"{example}")
-    page.add(t2, mainPage)
+# ウィジェットの配置や、イベント処理などを記述
+label = ttk.Label(topFrame, text="テキストテキスト")
+label.pack()
 
+entry = ttk.Entry(bottomFrame, width=30)
+entry.grid(row=1, column=0)
 
-ft.app(target=main)
+button = ttk.Button(bottomFrame, text="クリック", command=lambda: test("クリック"))
+button.grid(row=1, column=1)
+
+# メニューバーの作成
+menuBar = tk.Menu(root)
+filemenu = tk.Menu(menuBar, tearoff=0)
+filemenu.add_command(label="設定", command=lambda: test("設定"))
+filemenu.add_separator() #切れ目
+filemenu.add_command(label="終了", command=root.quit)
+menuBar.add_cascade(label="ファイル", menu=filemenu)
+
+root.config(menu=menuBar)
+# メインループの実行
+root.mainloop()
