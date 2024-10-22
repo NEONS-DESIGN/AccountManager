@@ -1,3 +1,4 @@
+import uuid
 import flet as ft
 
 async def main(page: ft.Page):
@@ -11,6 +12,7 @@ async def main(page: ft.Page):
     # 関数定義
     # ---------------------------------
 	def search_submit(e):
+		print(uuid.uuid5(uuid.NAMESPACE_URL, "ああああ"))
 		print(search_filed.value)
 
 	def route_change(e):
@@ -23,8 +25,8 @@ async def main(page: ft.Page):
 		top_appbar = ft.AppBar(
 			title=ft.Text("検索ページ"),
 			actions=[
-                ft.IconButton(ft.icons.WB_SUNNY_OUTLINED),
-                ft.IconButton(ft.icons.FILTER_3),
+                ft.IconButton(ft.icons.ADD),
+                ft.IconButton(ft.icons.CLOSE),
             ],
 		)
 		page.views.append(
@@ -38,10 +40,10 @@ async def main(page: ft.Page):
 			)
 		)
 		# テストページ（テストページのときだけviewに追加する）
-		if page.route == "/test":
+		if page.route == "/detail":
 			page.views.append(
 				ft.View(
-					"/test",
+					"/detail",
 					[
 						ft.AppBar(title=ft.Text("テストページ")),
 						ft.Text("これはテストページです"),
@@ -60,8 +62,8 @@ async def main(page: ft.Page):
 		page.go(top_view.route)
 
 	# テストページへ移動
-	def open_test(e):
-		page.go("/test")
+	def open_detail_page(e):
+		page.go("/detail")
 
 	# ---------------------------------
     # コンテンツ定義
@@ -72,11 +74,11 @@ async def main(page: ft.Page):
 				# notched=True,
 				# bgcolor_activated=ft.colors.AMBER_ACCENT,
 				# leading=ft.Icon(name=ft.cupertino_icons.GAME_CONTROLLER),
-				title=ft.Text("Title"),
-				subtitle=ft.Text("Subtitle"),
+				title=ft.Text("ServiceName"),
+				subtitle=ft.Text("Detail"),
 				trailing=ft.Icon(name=ft.cupertino_icons.ALARM),
 				additional_info=ft.Text("24/10/22"),
-				on_click=open_test,
+				on_click=open_detail_page,
 			),
 		],
 		spacing=10, #gap
@@ -113,4 +115,4 @@ async def main(page: ft.Page):
 	# ページ遷移を実行
 	page.go(page.route)
 
-ft.app(target=main)
+ft.app(target=main, assets_dir="assets")
