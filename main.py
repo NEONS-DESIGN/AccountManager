@@ -1,40 +1,116 @@
-import tkinter as tk
-from tkinter import ttk
+import flet as ft
 
-def test(e):
-    print(f"{e}が選択されました")
-    label["text"] = e
+async def main(page: ft.Page):
+	page.title = "PasswordManager"  # タイトル
+	page.window.width = 640  # 幅
+	page.window.height = 480  # 高さ
+	page.theme = ft.Theme(color_scheme_seed="blue", use_material3=False)
+	page.window.resizable = False  # ウィンドウサイズ変更可否
 
-# tkオブジェクトの作成
-root = tk.Tk()
-root.title("PasswordManager") #ウィンドウのタイトルを設定
-root.geometry("640x360") #ウィンドウのサイズを設定
-root.resizable(False, False) #ウィンドウサイズの固定
+	# ---------------------------------
+    # 関数定義
+    # ---------------------------------
+	def search_submit(e):
+		print(search_filed.value)
 
-# フレームを作成して配置
-topFrame = tk.Frame(root, bg="green")
-bottomFrame = tk.Frame(root, borderwidth=1, bg="blue")
-topFrame.pack(fill="x")
-bottomFrame.pack(side=tk.BOTTOM, fill="x")
+	def route_change(e):
+		print("Route change:", e.route)
 
-# ウィジェットの配置や、イベント処理などを記述
-label = ttk.Label(topFrame, text="テキストテキスト")
-label.pack()
+		# ページクリア
+		page.views.clear()
 
-entry = ttk.Entry(bottomFrame, width=30)
-entry.grid(row=1, column=0)
+		# トップページ（常にviewに追加する）
+		top_appbar = ft.AppBar(
+			title=ft.Text("検索ページ"),
+			actions=[
+                ft.IconButton(ft.icons.WB_SUNNY_OUTLINED),
+                ft.IconButton(ft.icons.FILTER_3),
+            ],
+		)
+		page.views.append(
+			ft.View(
+				"/",
+				[
+					top_appbar,
+					list_content,
+					form_content
+				],
+			)
+		)
+		# テストページ（テストページのときだけviewに追加する）
+		if page.route == "/test":
+			page.views.append(
+				ft.View(
+					"/test",
+					[
+						ft.AppBar(title=ft.Text("テストページ")),
+						ft.Text("これはテストページです"),
+					],
+				)
+			)
 
-button = ttk.Button(bottomFrame, text="クリック", command=lambda: test("クリック"))
-button.grid(row=1, column=1)
+		# ページ更新
+		page.update()
 
-# メニューバーの作成
-menuBar = tk.Menu(root)
-filemenu = tk.Menu(menuBar, tearoff=0)
-filemenu.add_command(label="設定", command=lambda: test("設定"))
-filemenu.add_separator() #切れ目
-filemenu.add_command(label="終了", command=root.quit)
-menuBar.add_cascade(label="ファイル", menu=filemenu)
+	# 現在のページを削除して、前のページに戻る
+	def view_pop(e):
+		print("View pop:", e.view)
+		page.views.pop()
+		top_view = page.views[-1]
+		page.go(top_view.route)
 
-root.config(menu=menuBar)
-# メインループの実行
-root.mainloop()
+	# テストページへ移動
+	def open_test(e):
+		page.go("/test")
+
+	# ---------------------------------
+    # コンテンツ定義
+    # ---------------------------------
+	list_content = ft.ListView(
+		controls=[
+			ft.CupertinoListTile(
+				# notched=True,
+				# bgcolor_activated=ft.colors.AMBER_ACCENT,
+				# leading=ft.Icon(name=ft.cupertino_icons.GAME_CONTROLLER),
+				title=ft.Text("Title"),
+				subtitle=ft.Text("Subtitle"),
+				trailing=ft.Icon(name=ft.cupertino_icons.ALARM),
+				additional_info=ft.Text("24/10/22"),
+				on_click=open_test,
+			),
+		],
+		spacing=10, #gap
+		padding=20,
+		height=300,
+		divider_thickness = 0.5 #区切り線
+	)
+
+	search_filed = ft.TextField(hint_text="アプリ・サービス名を入力してください", width=450, height=40, autofocus=True, text_vertical_align=0.9)
+	form_content = ft.Column(
+			controls=[
+				ft.Row(
+					[
+						search_filed,
+						ft.ElevatedButton("検索", on_click=search_submit, icon=ft.icons.SEARCH)
+					],
+					spacing=20,
+					alignment=ft.MainAxisAlignment.CENTER
+				)
+			],
+		)
+
+	# ---------------------------------
+	# イベントの登録
+	# ---------------------------------
+	# ページ遷移イベントが発生したら、ページを更新
+	page.on_route_change = route_change
+	# AppBarの戻るボタンクリック時、前のページへ戻る
+	page.on_view_pop = view_pop
+
+	# ---------------------------------
+	# 起動時の処理
+	# ---------------------------------
+	# ページ遷移を実行
+	page.go(page.route)
+
+ft.app(target=main)

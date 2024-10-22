@@ -1,69 +1,79 @@
-# -*- coding: utf-8 -*-
+import flet as ft
 
-################################################################################
-## Form generated from reading UI file 'testrFAcxj.ui'
-##
-## Created by: Qt User Interface Compiler version 6.8.0
-##
-## WARNING! All changes made in this file will be lost when recompiling UI file!
-################################################################################
+async def ui():
+		def tile_clicked(e):
+			add_content = ft.CupertinoListTile(
+				title=ft.Text("Title"),
+				subtitle=ft.Text("Subtitle"),
+				trailing=ft.Icon(name=ft.cupertino_icons.ALARM),
+				additional_info=ft.Text("24/10/22"),
+				on_click=tile_clicked,
+			)
+			list_content.controls.append(add_content)
+			list_content.update()
 
-from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect,
-    QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon,
-    QImage, QKeySequence, QLinearGradient, QPainter,
-    QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLineEdit, QListView,
-    QMainWindow, QPushButton, QSizePolicy, QVBoxLayout,
-    QWidget)
+		list_content = ft.ListView(
+			controls=[
+				ft.CupertinoListTile(
+					# notched=True,
+					# bgcolor_activated=ft.colors.AMBER_ACCENT,
+					# leading=ft.Icon(name=ft.cupertino_icons.GAME_CONTROLLER),
+					title=ft.Text("Title"),
+					subtitle=ft.Text("Subtitle"),
+					trailing=ft.Icon(name=ft.cupertino_icons.ALARM),
+					additional_info=ft.Text("24/10/22"),
+					on_click=tile_clicked,
+				),
+			],
+			spacing=10,
+			padding=20,
+			height=300,
+			divider_thickness = 0.5
+		)
 
-class Ui_MainWindow(object):
-    def setupUi(self, MainWindow):
-        if not MainWindow.objectName():
-            MainWindow.setObjectName(u"MainWindow")
-        MainWindow.setEnabled(True)
-        MainWindow.resize(640, 480)
-        self.Widget = QWidget(MainWindow)
-        self.Widget.setObjectName(u"Widget")
-        self.verticalLayoutWidget = QWidget(self.Widget)
-        self.verticalLayoutWidget.setObjectName(u"verticalLayoutWidget")
-        self.verticalLayoutWidget.setGeometry(QRect(10, 10, 620, 460))
-        self.verticalLayout = QVBoxLayout(self.verticalLayoutWidget)
-        self.verticalLayout.setObjectName(u"verticalLayout")
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.listView = QListView(self.verticalLayoutWidget)
-        self.listView.setObjectName(u"listView")
+		def search_submit(e):
+			contents.controls.append(ft.Text(value="Hello, world!", color="green"))
+			contents.update()
 
-        self.verticalLayout.addWidget(self.listView)
+		input = ft.TextField(hint_text="アプリ・サービス名を入力してください", width=400)
 
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.nameInput = QLineEdit(self.verticalLayoutWidget)
-        self.nameInput.setObjectName(u"nameInput")
+		# 部品を配置する
+		contents = ft.Column(
+				controls=[
+					ft.Row(
+						[
+							input,
+							ft.ElevatedButton("検索", on_click=search_submit, icon=ft.icons.SEARCH)
+						]
+					)
+				],
+				tight=True, # 水平方向の隙間をどうするか。デフォルトはFalseですべての要素に余白を与える。
+				expand=True, # 利用可能なスペースを埋めるようにするか。
+			)
 
-        self.horizontalLayout.addWidget(self.nameInput)
+		test = [list_content, contents]
 
-        self.searchBtn = QPushButton(self.verticalLayoutWidget)
-        self.searchBtn.setObjectName(u"searchBtn")
-        self.searchBtn.setCheckable(False)
+		return test
 
-        self.horizontalLayout.addWidget(self.searchBtn)
+async def control():
+	def search_submit(e):
+		contents.controls.append(ft.Text(value="Hello, world!", color="green"))
+		contents.update()
 
+	input = ft.TextField(hint_text="アプリ・サービス名を入力してください", width=400)
 
-        self.verticalLayout.addLayout(self.horizontalLayout)
+	# 部品を配置する
+	contents = ft.Column(
+			controls=[
+				ft.Row(
+					[
+						input,
+						ft.ElevatedButton("検索", on_click=search_submit, icon=ft.icons.SEARCH)
+					]
+				)
+			],
+			tight=True, # 水平方向の隙間をどうするか。デフォルトはFalseですべての要素に余白を与える。
+			expand=True, # 利用可能なスペースを埋めるようにするか。
+		)
 
-        MainWindow.setCentralWidget(self.Widget)
-
-        self.retranslateUi(MainWindow)
-
-        QMetaObject.connectSlotsByName(MainWindow)
-    # setupUi
-
-    def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"PasswordManager", None))
-        self.nameInput.setPlaceholderText(QCoreApplication.translate("MainWindow", u"\u30a2\u30d7\u30ea\u30fb\u30b5\u30fc\u30d3\u30b9\u540d", None))
-        self.searchBtn.setText(QCoreApplication.translate("MainWindow", u"\u691c\u7d22", None))
-    # retranslateUi
-
+	return contents
