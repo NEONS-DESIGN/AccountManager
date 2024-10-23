@@ -3,6 +3,8 @@ flet run main.py -d
 パスワードはhashlibというライブラリを通してハッシュ化して格納する。
 パスワードにはプロファイル名をuuid化したものをプラスしハッシュ化する。
 
+pip install pycryptodome
+
 データベース:
 serviceList:
 	no(int):
