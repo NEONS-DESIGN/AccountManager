@@ -1,6 +1,7 @@
 flet run main.py -d
 
-https://pypi.org/project/shortuuid/
+パスワードはhashlibというライブラリを通してハッシュ化して格納する。
+パスワードにはプロファイル名をuuid化したものをプラスしハッシュ化する。
 
 データベース:
 serviceList:
@@ -9,20 +10,28 @@ serviceList:
 		必須
 		主キー
 		自動挿入
-	uuid(text):
-		単一
-		必須
-		主キー
 	serviceName(text):
 		単一
 		必須
 	serviceDetail(text):
+	
 	updateTime(text):
 		必須
 
 serviceData:
 	serviceName(text):
-		単一
 		必須
 	serviceDetail(text):
+	
+	accountName(text):
+		単一
+		必須
+	accountId(text):
+	
+	accountAddress(text):
+		必須
+	accountHashPassword(text):
+		必須
+	
+	
 	
