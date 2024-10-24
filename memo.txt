@@ -20,7 +20,7 @@ serviceList:
 	updateTime(text):
 		必須
 
-serviceData:
+accountData:
 	serviceName(text):
 		必須
 	serviceDetail(text):
@@ -31,7 +31,7 @@ serviceData:
 	accountId(text):
 	
 	accountAddress(text):
-		必須
+	
 	accountHashPassword(text):
 		必須
 	
