@@ -1,4 +1,5 @@
 import flet as ft
+import uuid
 
 from modules.sqlite import sql_execution
 
@@ -17,9 +18,10 @@ async def main(page: ft.Page):
 	page.overlay.append(progress_bar)
 
 	# グローバル変数
-	global remove_data, edit_data
+	global remove_data, edit_data, account_uuid
 	remove_data = ""
 	edit_data = ""
+	account_uuid = ""
 
 	# ---------------------------------
     # データベースアクセス関数定義
@@ -36,16 +38,16 @@ async def main(page: ft.Page):
 		sql = f"SELECT * FROM serviceList WHERE serviceName LIKE '%{serviceName}%';"
 		return await sql_execution(sql)
 
-	async def delete_service(serviceName):
-		sql = f"DELETE FROM serviceList WHERE serviceName = '{serviceName}';"
+	async def delete_service(uuid):
+		sql = f"DELETE FROM serviceList WHERE uuid = '{uuid}';"
 		return await sql_execution(sql)
 
-	async def delete_account(serviceName):
-		sql = f"DELETE FROM accountData WHERE serviceName = '{serviceName}';"
+	async def delete_account(serviceUuid):
+		sql = f"DELETE FROM accountData WHERE serviceUuid = '{serviceUuid}';"
 		return await sql_execution(sql)
 
-	async def insert_service(serviceName, serviceDetail):
-		sql = f"INSERT INTO serviceList (serviceName, serviceDetail) VALUES ('{serviceName}', '{serviceDetail}')"
+	async def insert_service(uuid, serviceName, serviceDetail):
+		sql = f"INSERT INTO serviceList (uuid, serviceName, serviceDetail) VALUES ('{uuid}', '{serviceName}', '{serviceDetail}')"
 		return await sql_execution(sql)
 
 	async def update_service(oldServiceName, newServiceName, serviceDetail):
@@ -55,6 +57,10 @@ async def main(page: ft.Page):
 		result2 = await sql_execution(sql)
 		return result1, result2
 
+	async def get_account_list():
+		sql = f"SELECT * FROM accountData;"
+		return await sql_execution(sql)
+
 	# ---------------------------------
     # 関数定義
     # ---------------------------------
@@ -63,6 +69,8 @@ async def main(page: ft.Page):
 		search_filed.update()
 
 	async def reset():
+		create_form_content.controls[0].value = ""
+		create_form_content.controls[1].value = ""
 		create_form_content.controls[2].controls[0].value = ""
 
 	async def search_submit(e):
@@ -75,6 +83,7 @@ async def main(page: ft.Page):
 		service_list_content.update()
 
 	async def create_submit(e):
+		gen_uuid = uuid.uuid4()
 		name = create_form_content.controls[0]
 		detail = create_form_content.controls[1]
 		error_text = create_form_content.controls[2].controls[0]
@@ -83,13 +92,16 @@ async def main(page: ft.Page):
 			error_text.value = "アプリ・サービス名を入力してください。"
 			create_form_content.update()
 			return
+		# 詳細が空の場合、Noneを挿入
+		if not detail.value:
+			detail.value = "None"
 		# 一致する名前があった場合エラー表示を出し、処理停止
 		if await get_search_service_list(name.value):
 			error_text.value ="既存のアプリ・サービス名は使用できません"
 			create_form_content.update()
 			return
 		try:
-			insert_result = await insert_service(name.value, detail.value)
+			insert_result = await insert_service(gen_uuid, name.value, detail.value)
 		except Exception as err:
 			print(err)
 			error_text.value = "データベースエラーが発生しました。\nもう一度お願いいたします。"
@@ -108,6 +120,9 @@ async def main(page: ft.Page):
 			error_text.value = "アプリ・サービス名を入力してください。"
 			create_form_content.update()
 			return
+		# 詳細が空の場合、Noneを挿入
+		if not detail.value:
+			detail.value = "None"
 		# 一致する名前があった場合エラー表示を出し、処理停止
 		if oldName == name.value:
 			if oldDetail == detail.value:
@@ -140,6 +155,7 @@ async def main(page: ft.Page):
 
 		# トップページ
 		if page.route == "/":
+			await data_check()
 			appbar.title = ft.Text("アプリ・サービス検索")
 			appbar.actions = [
 				ft.IconButton(ft.icons.ADD, tooltip="データ追加", on_click=open_create_page),
@@ -150,6 +166,7 @@ async def main(page: ft.Page):
 					"/",
 					appbar=appbar,
 					controls=[
+						starter_content,
 						service_list_content,
 						search_form_content
 					],
@@ -165,7 +182,7 @@ async def main(page: ft.Page):
 					"/service",
 					appbar=appbar,
 					controls=[
-						ft.Text("作成中"),
+						account_list_content,
 						ft.FloatingActionButton(icon=ft.icons.ADD, tooltip="アカウント追加", on_click=open_account_add_page),
 					],
 				)
@@ -217,9 +234,13 @@ async def main(page: ft.Page):
 		page.views.pop()
 		page.go("/back")
 		await reset()
+		await data_check()
 
 	# 詳細ページへ移動
 	async def open_service_page(e):
+		global account_uuid
+		account_uuid = e.control.data[0]
+		await generate_account_list()
 		page.go("/service")
 
 	# アカウント詳細ページ
@@ -228,6 +249,7 @@ async def main(page: ft.Page):
 
 	# アプリ・サービス登録ページ
 	async def open_create_page(e):
+		create_form_content.controls[2].controls[1].on_click = create_submit
 		page.go("/create")
 
 	# アプリ・サービス編集ページ
@@ -240,10 +262,10 @@ async def main(page: ft.Page):
 	# サービスとそれに関連したデータの削除
 	async def remove_service(e):
 		e = remove_data
-		await delete_service(e.control.data)
-		await delete_account(e.control.data)
+		await delete_service(e.control.data[0])
+		await delete_account(e.control.data[0])
 		for check in service_list_content.controls:
-			if check.data == e.control.data:
+			if check.data[0] == e.control.data[0]:
 				check.clean()
 				page.close(confirmation_dialog)
 				return
@@ -252,7 +274,7 @@ async def main(page: ft.Page):
 	async def remove_confirmation_dialog(e):
 		global remove_data
 		remove_data = e
-		confirmation_dialog.content = ft.Text(f"「{e.control.data}」を本当に削除しますか？\n一時削除すると、元に戻りません。", color=ft.colors.RED)
+		confirmation_dialog.content = ft.Text(f"「{e.control.data[1]}」を本当に削除しますか？\n一時削除すると、元に戻りません。", color=ft.colors.RED)
 		confirmation_dialog.actions = [
 			ft.TextButton("はい", on_click=remove_service),
 			ft.TextButton("いいえ", on_click=lambda _: page.close(confirmation_dialog)),
@@ -267,38 +289,75 @@ async def main(page: ft.Page):
 				icon=ft.icons.MORE_VERT,
 				items=[
 					ft.PopupMenuItem(text="編集", icon=ft.icons.EDIT, on_click=open_edit_page, data=app),
-					ft.PopupMenuItem(text="削除", icon=ft.icons.DELETE, on_click=remove_confirmation_dialog, data=app[1]),
+					ft.PopupMenuItem(text="削除", icon=ft.icons.DELETE, on_click=remove_confirmation_dialog, data=app),
 				],
 				tooltip="メニュー",
 			),
 			# additional_info=ft.Text(f"{app[3]}"), #最終更新日
 			on_click=open_service_page,
-			data=app[0],
+			data=app,
 			visual_density=ft.VisualDensity.ADAPTIVE_PLATFORM_DENSITY
 		)
 
 	# データ分すべて生成したリストの生成
 	async def generate_service_list():
 		service_list_content.controls.clear()
-		for app in await get_service_list():
-			service_list_content.controls.append(
+		service_list = await get_service_list()
+		if service_list != []:
+			starter_content.visible = False
+			for app in service_list:
+				service_list_content.controls.append(
+					ft.ListTile(
+						title=ft.Text(f"{app[1]}"), #サービス名
+						subtitle=ft.Text(f"{app[2]}"), #詳細
+						trailing=ft.PopupMenuButton(
+							icon=ft.icons.MORE_VERT,
+							items=[
+								ft.PopupMenuItem(text="編集", icon=ft.icons.EDIT, on_click=open_edit_page, data=app),
+								ft.PopupMenuItem(text="削除", icon=ft.icons.DELETE, on_click=remove_confirmation_dialog, data=app),
+							],
+							tooltip="メニュー",
+						),
+						# additional_info=ft.Text(f"{app[3]}"), #最終更新日
+						on_click=open_service_page,
+						data=app,
+						visual_density=ft.VisualDensity.ADAPTIVE_PLATFORM_DENSITY
+					),
+				)
+		else:
+			service_list_content.visible = False
+			search_form_content.visible = False
+			page.update()
+
+	async def generate_account_list():
+		account_list_content.controls.clear()
+		account_list = await get_account_list()
+		print(account_list)
+		for app in account_list:
+			account_list_content.controls.append(
 				ft.ListTile(
-					title=ft.Text(f"{app[1]}"), #サービス名
-					subtitle=ft.Text(f"{app[2]}"), #詳細
+					title=ft.Text(f"{app[2]}"), #サービス名
+					subtitle=ft.Text(f"最終更新: {app[6]}"), #詳細
 					trailing=ft.PopupMenuButton(
 						icon=ft.icons.MORE_VERT,
 						items=[
 							ft.PopupMenuItem(text="編集", icon=ft.icons.EDIT, on_click=open_edit_page, data=app),
-							ft.PopupMenuItem(text="削除", icon=ft.icons.DELETE, on_click=remove_confirmation_dialog, data=app[1]),
+							ft.PopupMenuItem(text="削除", icon=ft.icons.DELETE, on_click=remove_confirmation_dialog, data=app),
 						],
 						tooltip="メニュー",
 					),
-					# additional_info=ft.Text(f"{app[3]}"), #最終更新日
-					on_click=open_service_page,
-					data=app[1],
+					data=app,
 					visual_density=ft.VisualDensity.ADAPTIVE_PLATFORM_DENSITY
 				),
 			)
+
+	async def data_check():
+		# データの有無チェック
+		service_list = await get_service_list()
+		if service_list != []:
+			starter_content.visible = False
+			service_list_content.visible = True
+			search_form_content.visible = True
 
 	# ---------------------------------
     # コンテンツ定義
@@ -314,6 +373,29 @@ async def main(page: ft.Page):
 		selected_icon_color=ft.colors.YELLOW,
 	)
 
+	# 初起動時&データなし時表示
+	starter_content = ft.Column (
+		controls=[
+			ft.Row(
+				controls=[
+					ft.Text("データがありません。", weight=ft.FontWeight.W_900, size=20)
+				],
+				alignment= ft.MainAxisAlignment.CENTER,
+			),
+			ft.Row(
+				controls=[
+					ft.ElevatedButton(text="追加", icon=ft.icons.ADD, icon_color=ft.colors.BLUE, on_click=open_create_page),
+					ft.ElevatedButton(text="閉じる", icon=ft.icons.CLOSE, icon_color=ft.colors.RED, on_click=lambda _: page.window.close()),
+				],
+				spacing=20,
+				alignment= ft.MainAxisAlignment.CENTER
+			),
+		],
+		height=page.window.height - 200,
+		alignment= ft.MainAxisAlignment.CENTER,
+		visible=True,
+	)
+
 	# リスト用意
 	service_list_content = ft.ListView(
 		controls=[],
@@ -324,7 +406,7 @@ async def main(page: ft.Page):
 	)
 
 	search_filed = ft.TextField(
-		hint_text="アプリ・サービス名を入力してください",
+		hint_text="アプリ・サービス名で検索",
 		width=page.window.width - 170,
 		height=40,
 		autofocus=True,
@@ -348,10 +430,10 @@ async def main(page: ft.Page):
 	create_form_content = ft.Column(
 		controls=[
 			ft.TextField(
-						label="アプリ・サービス名",
+						label="アプリ・サービス名 (必須)",
 						border=ft.InputBorder.UNDERLINE,
 						max_lines=1,
-						max_length=50
+						max_length=50,
 					),
 			ft.TextField(
 						label="アプリ・サービスの詳細",
@@ -362,7 +444,7 @@ async def main(page: ft.Page):
 			ft.Row(
 				controls=[
 					ft.Text(color=ft.colors.RED),
-					ft.ElevatedButton(text="保存", on_click=create_submit)
+					ft.ElevatedButton(text="保存", icon=ft.icons.SAVE)
 				],
 				alignment=ft.MainAxisAlignment.END,
 			)
@@ -374,6 +456,14 @@ async def main(page: ft.Page):
 		modal=True,
 		title=ft.Text("削除確認"),
 		actions_alignment=ft.MainAxisAlignment.END,
+	)
+
+	account_list_content = ft.ListView(
+		controls=[],
+		spacing=10, #gap
+		padding=10,
+		height=page.window.height - 200,
+		divider_thickness = 0.5 #区切り線
 	)
 
 	# ---------------------------------

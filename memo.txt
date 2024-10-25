@@ -7,21 +7,20 @@ pip install pycryptodome
 
 データベース:
 serviceList:
-	no(int):
+	uuid(text):
 		単一
 		必須
 		主キー
-		自動挿入
 	serviceName(text):
 		単一
 		必須
 	serviceDetail(text):
-
+		必須
 accountData:
+	serviceUuid(text):
+		必須	
 	serviceName(text):
 		必須
-	serviceDetail(text):
-	
 	accountName(text):
 		単一
 		必須
@@ -29,7 +28,9 @@ accountData:
 	
 	accountAddress(text):
 	
-	accountHashPassword(text):
+	accountPassword(text):
+		
+	updateTime(text):
 		必須
 	
 	
