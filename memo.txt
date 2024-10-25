@@ -16,9 +16,6 @@ serviceList:
 		単一
 		必須
 	serviceDetail(text):
-	
-	updateTime(text):
-		必須
 
 accountData:
 	serviceName(text):
