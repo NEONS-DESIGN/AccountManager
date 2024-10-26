@@ -1,7 +1,12 @@
+import configparser
 import flet as ft
 import uuid
 
-from modules.sqlite import sql_execution
+from modules.databaseAccess import *
+
+# configファイルの読み込み
+config = configparser.ConfigParser()
+config.read('./config.ini', 'UTF-8')
 
 async def main(page: ft.Page):
 	page.title = "PasswordManager"  # タイトル
@@ -10,7 +15,7 @@ async def main(page: ft.Page):
 	page.window.height = 480  # 高さ
 	page.window.min_height = 480
 	page.theme = ft.Theme(color_scheme_seed="Blue")
-	page.theme_mode = ft.ThemeMode.LIGHT
+	page.theme_mode = config.get('Settings', 'theme_mode')
 	page.window.resizable = True  # ウィンドウサイズ変更可否
 
 	# プログレスバー表示
@@ -22,44 +27,6 @@ async def main(page: ft.Page):
 	remove_data = ""
 	edit_data = ""
 	account_uuid = ""
-
-	# ---------------------------------
-    # データベースアクセス関数定義
-    # ---------------------------------
-	async def get_service_list():
-		sql = f"SELECT * FROM serviceList;"
-		return await sql_execution(sql)
-
-	async def get_search_service_list(serviceName):
-		sql = f"SELECT * FROM serviceList WHERE serviceName = '{serviceName}';"
-		return await sql_execution(sql)
-
-	async def get_like_search_service_list(serviceName):
-		sql = f"SELECT * FROM serviceList WHERE serviceName LIKE '%{serviceName}%';"
-		return await sql_execution(sql)
-
-	async def delete_service(uuid):
-		sql = f"DELETE FROM serviceList WHERE uuid = '{uuid}';"
-		return await sql_execution(sql)
-
-	async def delete_account(serviceUuid):
-		sql = f"DELETE FROM accountData WHERE serviceUuid = '{serviceUuid}';"
-		return await sql_execution(sql)
-
-	async def insert_service(uuid, serviceName, serviceDetail):
-		sql = f"INSERT INTO serviceList (uuid, serviceName, serviceDetail) VALUES ('{uuid}', '{serviceName}', '{serviceDetail}')"
-		return await sql_execution(sql)
-
-	async def update_service(oldServiceName, newServiceName, serviceDetail):
-		sql = f"UPDATE serviceList SET serviceDetail = '{serviceDetail}' WHERE serviceName IS '{oldServiceName}'"
-		result1 = await sql_execution(sql)
-		sql = f"UPDATE serviceList SET serviceName = '{newServiceName}' WHERE serviceName IS '{oldServiceName}'"
-		result2 = await sql_execution(sql)
-		return result1, result2
-
-	async def get_account_list():
-		sql = f"SELECT * FROM accountData;"
-		return await sql_execution(sql)
 
 	# ---------------------------------
     # 関数定義
@@ -76,11 +43,17 @@ async def main(page: ft.Page):
 	async def search_submit(e):
 		app_list = await get_like_search_service_list(search_filed.value)
 		service_list_content.clean()
-		for app in app_list:
-			service_list_content.controls.append(
-				await app_list_controls(app)
-			)
-		service_list_content.update()
+		if app_list == []:
+			no_data_content.visible = True
+			service_list_content.visible = False
+		else:
+			no_data_content.visible = False
+			service_list_content.visible = True
+			for app in app_list:
+				service_list_content.controls.append(
+					await app_list_controls(app)
+				)
+		page.update()
 
 	async def create_submit(e):
 		gen_uuid = uuid.uuid4()
@@ -107,9 +80,11 @@ async def main(page: ft.Page):
 			error_text.value = "データベースエラーが発生しました。\nもう一度お願いいたします。"
 			create_form_content.update()
 			return
+		await search_submit(e)
 		await view_pop(e)
 
 	async def edit_submit(e):
+		uuid = edit_data.control.data[0]
 		oldName = edit_data.control.data[1]
 		oldDetail = edit_data.control.data[2]
 		name = create_form_content.controls[0]
@@ -131,7 +106,7 @@ async def main(page: ft.Page):
 					create_form_content.update()
 					return
 		try:
-			edit_result = await update_service(oldName, name.value, detail.value)
+			edit_result = await update_service(uuid, name.value, detail.value)
 		except Exception as err:
 			print(err)
 			error_text.value = "データベースエラーが発生しました。\nもう一度お願いいたします。"
@@ -144,6 +119,10 @@ async def main(page: ft.Page):
 		toggle_dark_light.selected = not toggle_dark_light.selected
 		toggle_dark_light.tooltip = f"{'ライト' if toggle_dark_light.selected else 'ダーク'}モードへ切り替え"
 		page.update()
+		config.set('Settings', 'theme_mode', page.theme_mode)
+		with open('config.ini', 'w') as fp:
+			config.write(fp)
+			fp.close()
 
 	async def route_change(e):
 		print("Route change:", e.route)
@@ -167,6 +146,7 @@ async def main(page: ft.Page):
 					appbar=appbar,
 					controls=[
 						starter_content,
+						no_data_content,
 						service_list_content,
 						search_form_content
 					],
@@ -266,7 +246,7 @@ async def main(page: ft.Page):
 		await delete_account(e.control.data[0])
 		for check in service_list_content.controls:
 			if check.data[0] == e.control.data[0]:
-				check.clean()
+				await search_submit(e)
 				page.close(confirmation_dialog)
 				return
 
@@ -331,8 +311,7 @@ async def main(page: ft.Page):
 
 	async def generate_account_list():
 		account_list_content.controls.clear()
-		account_list = await get_account_list()
-		print(account_list)
+		account_list = await get_account_list(account_uuid)
 		for app in account_list:
 			account_list_content.controls.append(
 				ft.ListTile(
@@ -356,6 +335,7 @@ async def main(page: ft.Page):
 		service_list = await get_service_list()
 		if service_list != []:
 			starter_content.visible = False
+			no_data_content.visible = False
 			service_list_content.visible = True
 			search_form_content.visible = True
 
@@ -389,6 +369,20 @@ async def main(page: ft.Page):
 				],
 				spacing=20,
 				alignment= ft.MainAxisAlignment.CENTER
+			),
+		],
+		height=page.window.height - 200,
+		alignment= ft.MainAxisAlignment.CENTER,
+		visible=True,
+	)
+
+	no_data_content = ft.Column (
+		controls=[
+			ft.Row(
+				controls=[
+					ft.Text("データがありません。", weight=ft.FontWeight.BOLD, size=20)
+				],
+				alignment= ft.MainAxisAlignment.CENTER,
 			),
 		],
 		height=page.window.height - 200,
@@ -467,12 +461,6 @@ async def main(page: ft.Page):
 	)
 
 	# ---------------------------------
-	# 初期呼び出し
-	# ---------------------------------
-	# データ分すべて生成したリストの生成
-	await generate_service_list()
-
-	# ---------------------------------
 	# イベントの登録
 	# ---------------------------------
 	# ページ遷移イベントが発生したら、ページを更新
@@ -485,6 +473,14 @@ async def main(page: ft.Page):
 	# ---------------------------------
 	# 起動時の処理
 	# ---------------------------------
+	# テーマモードの切替
+	if page.theme_mode == "light":
+		toggle_dark_light.selected = not toggle_dark_light.selected
+	elif "dark":
+		toggle_dark_light.selected = not toggle_dark_light.selected
+	toggle_dark_light.tooltip = f"{'ライト' if toggle_dark_light.selected else 'ダーク'}モードへ切り替え"
+	# データ分すべて生成したリストの生成
+	await generate_service_list()
 	# ページ遷移を実行
 	page.views.clear()
 	page.go("/")
