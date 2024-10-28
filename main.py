@@ -112,6 +112,7 @@ async def main(page: ft.Page):
 			error_text.value = "データベースエラーが発生しました。\nもう一度お願いいたします。"
 			create_form_content.update()
 			return
+		await search_submit(e)
 		await view_pop(e)
 
 	async def change_theme(e):
@@ -175,7 +176,7 @@ async def main(page: ft.Page):
 					"/service/add",
 					appbar=appbar,
 					controls=[
-						ft.Text("作成中"),
+						account_add_form_content,
 					]
 				)
 			)
@@ -216,15 +217,16 @@ async def main(page: ft.Page):
 		await reset()
 		await data_check()
 
-	# 詳細ページへ移動
+	# アカウント一覧ページ
 	async def open_service_page(e):
 		global account_uuid
 		account_uuid = e.control.data[0]
 		await generate_account_list()
 		page.go("/service")
 
-	# アカウント詳細ページ
+	# アカウント追加ページ
 	async def open_account_add_page(e):
+		print(account_uuid)
 		page.go("/service/add")
 
 	# アプリ・サービス登録ページ
@@ -446,6 +448,54 @@ async def main(page: ft.Page):
 		spacing=10
 	)
 
+	account_add_form_content = ft.ListView(
+		controls=[
+			ft.TextField(
+						label="アカウント名",
+						border=ft.InputBorder.UNDERLINE,
+						max_lines=1,
+						max_length=64,
+					),
+			ft.Row(
+				controls=[
+					ft.TextField(
+						label="ID",
+						border=ft.InputBorder.UNDERLINE,
+						max_lines=1,
+						max_length=128,
+						width=(page.window.width / 2) - 50,
+						prefix_icon=ft.icons.BADGE,
+					),
+					ft.TextField(
+						label="パスワード",
+						border=ft.InputBorder.UNDERLINE,
+						max_lines=1,
+						max_length=128,
+						width=(page.window.width / 2) - 50,
+						prefix_icon=ft.icons.PASSWORD,
+					),
+				],
+				alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+			),
+			ft.TextField(
+						label="メールアドレス",
+						border=ft.InputBorder.UNDERLINE,
+						max_lines=1,
+						max_length=256,
+						prefix_icon=ft.icons.MAIL,
+					),
+			ft.Row(
+				controls=[
+					ft.Text(color=ft.colors.RED),
+					ft.ElevatedButton(text="追加", icon=ft.icons.ADD)
+				],
+				alignment=ft.MainAxisAlignment.END,
+			)
+		],
+		spacing=10,
+		padding=20,
+	)
+
 	confirmation_dialog = ft.AlertDialog(
 		modal=True,
 		title=ft.Text("削除確認"),
@@ -474,9 +524,7 @@ async def main(page: ft.Page):
 	# 起動時の処理
 	# ---------------------------------
 	# テーマモードの切替
-	if page.theme_mode == "light":
-		toggle_dark_light.selected = not toggle_dark_light.selected
-	elif "dark":
+	if page.theme_mode == "dark":
 		toggle_dark_light.selected = not toggle_dark_light.selected
 	toggle_dark_light.tooltip = f"{'ライト' if toggle_dark_light.selected else 'ダーク'}モードへ切り替え"
 	# データ分すべて生成したリストの生成
