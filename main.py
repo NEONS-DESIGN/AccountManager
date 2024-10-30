@@ -2,7 +2,12 @@ import configparser
 import flet as ft
 import uuid
 
+from dotenv import load_dotenv, set_key
 from modules.databaseAccess import *
+from modules.cipher import *
+
+# 環境変数読み込み
+load_dotenv()
 
 # configファイルの読み込み
 config = configparser.ConfigParser()
@@ -23,9 +28,10 @@ async def main(page: ft.Page):
 	page.overlay.append(progress_bar)
 
 	# グローバル変数
-	global remove_data, edit_data, account_uuid
+	global remove_data, edit_data, detail_data, account_uuid
 	remove_data = ""
 	edit_data = ""
+	detail_data = ""
 	account_uuid = ""
 
 	# ---------------------------------
@@ -156,11 +162,11 @@ async def main(page: ft.Page):
 				)
 			)
 		# アカウントリストページ
-		if page.route == "/service":
+		if page.route == "/accounts":
 			appbar.title = ft.Text("アカウントリスト")
 			page.views.append(
 				ft.View(
-					"/service",
+					"/accounts",
 					appbar=appbar,
 					controls=[
 						account_list_content,
@@ -168,12 +174,12 @@ async def main(page: ft.Page):
 					],
 				)
 			)
-		# アカウント詳細ページ
-		if page.route == "/service/add":
-			appbar.title = ft.Text("アカウント詳細")
+		# アカウント追加ページ
+		if page.route == "/accounts/add":
+			appbar.title = ft.Text("アカウント追加")
 			page.views.append(
 				ft.View(
-					"/service/add",
+					"/accounts/add",
 					appbar=appbar,
 					controls=[
 						account_add_form_content,
@@ -207,6 +213,39 @@ async def main(page: ft.Page):
 					]
 				)
 			)
+		# アカウント詳細ページ
+		if page.route == "/accounts/detail":
+			appbar.title = ft.Text("アカウント詳細")
+			detail = detail_data.control
+			account_detail_form_content.controls[0].value = detail.data[2]
+			account_detail_form_content.controls[0].data = detail.data[2]
+			account_detail_form_content.controls[1].controls[0].value = detail.data[3]
+			account_detail_form_content.controls[1].controls[0].data = detail.data[3]
+			account_detail_form_content.controls[1].controls[1].value = detail.data[4]
+			account_detail_form_content.controls[1].controls[1].data = detail.data[4]
+			account_detail_form_content.controls[2].value = detail.data[5]
+			account_detail_form_content.controls[2].data = detail.data[5]
+			page.views.append(
+				ft.View(
+					"/accounts/detail",
+					appbar=appbar,
+					controls=[
+						account_detail_form_content,
+					]
+				)
+			)
+		# アカウントデータ編集ページ
+		if page.route == "/accounts/edit":
+			appbar.title = ft.Text("アカウントデータ編集")
+			page.views.append(
+				ft.View(
+					"/accounts/edit",
+					appbar=appbar,
+					controls=[
+						create_form_content,
+					]
+				)
+			)
 		# ページ更新
 		page.update()
 
@@ -222,12 +261,12 @@ async def main(page: ft.Page):
 		global account_uuid
 		account_uuid = e.control.data[0]
 		await generate_account_list()
-		page.go("/service")
+		page.go("/accounts")
 
 	# アカウント追加ページ
 	async def open_account_add_page(e):
 		print(account_uuid)
-		page.go("/service/add")
+		page.go("/accounts/add")
 
 	# アプリ・サービス登録ページ
 	async def open_create_page(e):
@@ -240,6 +279,12 @@ async def main(page: ft.Page):
 		edit_data = e
 		create_form_content.controls[2].controls[1].on_click = edit_submit
 		page.go("/edit")
+
+	# アカウント詳細ページ
+	async def open_account_detail_page(e):
+		global detail_data
+		detail_data = e
+		page.go("/accounts/detail")
 
 	# サービスとそれに関連したデータの削除
 	async def remove_service(e):
@@ -283,10 +328,13 @@ async def main(page: ft.Page):
 
 	# データ分すべて生成したリストの生成
 	async def generate_service_list():
+		# 一旦リストの中身を空にする
 		service_list_content.controls.clear()
+		# DBからデータを取得してくる
 		service_list = await get_service_list()
 		if service_list != []:
 			starter_content.visible = False
+			# 取ってきたデータを一つづつ取り出し、要素を作成し追加する
 			for app in service_list:
 				service_list_content.controls.append(
 					ft.ListTile(
@@ -300,15 +348,19 @@ async def main(page: ft.Page):
 							],
 							tooltip="メニュー",
 						),
-						# additional_info=ft.Text(f"{app[3]}"), #最終更新日
 						on_click=open_service_page,
 						data=app,
 						visual_density=ft.VisualDensity.ADAPTIVE_PLATFORM_DENSITY
 					),
 				)
 		else:
+			# 秘密鍵を生成し、環境変数ファイルへ書き込む
+			secret_key = create_key()
+			set_key(".env", "CLIENT_SECRET_KEY", secret_key)
+			# 表示の切り替え
 			service_list_content.visible = False
 			search_form_content.visible = False
+			# 画面へ反映
 			page.update()
 
 	async def generate_account_list():
@@ -327,19 +379,30 @@ async def main(page: ft.Page):
 						],
 						tooltip="メニュー",
 					),
+					on_click=open_account_detail_page,
 					data=app,
 					visual_density=ft.VisualDensity.ADAPTIVE_PLATFORM_DENSITY
 				),
 			)
 
+	# データの有無チェック
 	async def data_check():
-		# データの有無チェック
 		service_list = await get_service_list()
 		if service_list != []:
 			starter_content.visible = False
 			no_data_content.visible = False
 			service_list_content.visible = True
 			search_form_content.visible = True
+
+	# クリップボードへコピー
+	async def set_clipboard(e):
+		data = e.control.data
+		if data:
+			page.set_clipboard(data)
+			page.overlay.append(ft.SnackBar(ft.Text(f"クリップボードに 「{data}」 をコピーしました。"), open=True)),
+		else:
+			page.overlay.append(ft.SnackBar(ft.Text(f"データがありません。"), open=True)),
+		page.update()
 
 	# ---------------------------------
     # コンテンツ定義
@@ -455,6 +518,7 @@ async def main(page: ft.Page):
 						border=ft.InputBorder.UNDERLINE,
 						max_lines=1,
 						max_length=64,
+						prefix_icon=ft.icons.LABEL,
 					),
 			ft.Row(
 				controls=[
@@ -491,6 +555,52 @@ async def main(page: ft.Page):
 				],
 				alignment=ft.MainAxisAlignment.END,
 			)
+		],
+		spacing=10,
+		padding=20,
+	)
+
+	account_detail_form_content = ft.ListView(
+		controls=[
+			ft.TextField(
+						label="アカウント名",
+						border=ft.InputBorder.UNDERLINE,
+						max_lines=1,
+						prefix_icon=ft.icons.LABEL,
+						read_only=True,
+						on_focus=set_clipboard,
+					),
+			ft.Row(
+				controls=[
+					ft.TextField(
+						label="ID",
+						border=ft.InputBorder.UNDERLINE,
+						max_lines=1,
+						width=(page.window.width / 2) - 50,
+						prefix_icon=ft.icons.BADGE,
+						read_only=True,
+						on_focus=set_clipboard,
+					),
+					ft.TextField(
+						label="パスワード",
+						border=ft.InputBorder.UNDERLINE,
+						max_lines=1,
+						width=(page.window.width / 2) - 50,
+						prefix_icon=ft.icons.PASSWORD,
+						read_only=True,
+						on_focus=set_clipboard,
+					),
+				],
+				alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+			),
+			ft.TextField(
+						label="メールアドレス",
+						border=ft.InputBorder.UNDERLINE,
+						max_lines=1,
+						prefix_icon=ft.icons.MAIL,
+						read_only=True,
+						on_focus=set_clipboard,
+					),
 		],
 		spacing=10,
 		padding=20,
