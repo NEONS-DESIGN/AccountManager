@@ -374,8 +374,8 @@ async def main(page: ft.Page):
 					trailing=ft.PopupMenuButton(
 						icon=ft.icons.MORE_VERT,
 						items=[
-							ft.PopupMenuItem(text="編集", icon=ft.icons.EDIT, on_click=open_edit_page, data=app),
-							ft.PopupMenuItem(text="削除", icon=ft.icons.DELETE, on_click=remove_confirmation_dialog, data=app),
+							ft.PopupMenuItem(text="編集", icon=ft.icons.EDIT, data=app),
+							ft.PopupMenuItem(text="削除", icon=ft.icons.DELETE, data=app),
 						],
 						tooltip="メニュー",
 					),
@@ -537,6 +537,8 @@ async def main(page: ft.Page):
 						max_length=128,
 						width=(page.window.width / 2) - 50,
 						prefix_icon=ft.icons.PASSWORD,
+						password=True,
+						can_reveal_password=True
 					),
 				],
 				alignment=ft.MainAxisAlignment.SPACE_BETWEEN
@@ -589,6 +591,8 @@ async def main(page: ft.Page):
 						prefix_icon=ft.icons.PASSWORD,
 						read_only=True,
 						on_focus=set_clipboard,
+						password=True,
+						can_reveal_password=True,
 					),
 				],
 				alignment=ft.MainAxisAlignment.SPACE_BETWEEN
