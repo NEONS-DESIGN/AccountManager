@@ -156,6 +156,41 @@ async def main(page: ft.Page):
 		await search_submit(e)
 		await view_pop(e)
 
+	async def account_edit_submit(e):
+		print(account_add_form_content.data)
+		uuid = account_add_form_content.data[0]
+		account_name = account_add_form_content.controls[0].value
+		old_account_name = account_add_form_content.data[1]
+		id = account_add_form_content.controls[1].controls[0].value
+		old_id = account_add_form_content.data[2]
+		decrypt_password = account_add_form_content.controls[1].controls[1].value
+		old_password = account_add_form_content.data[4]
+		mail_address = account_add_form_content.controls[2].value
+		old_mail_address = account_add_form_content.data[3]
+
+		error_text = account_add_form_content.controls[3].controls[0]
+
+		if account_name == "":
+			error_text.value = "アカウント名が入力されていません。"
+			account_add_form_content.update()
+			return
+		if account_name != old_account_name:
+			account_list = await get_account_list(uuid)
+			for check in account_list:
+				if account_name == check[1]:
+					error_text.value = "すでに使われているアカウント名です。"
+					account_add_form_content.update()
+					return
+		# error_text = account_add_form_content[3].controls[0]
+		# try:
+		# 	result = await update_account(uuid, account_name, id, mail_address, password, update_time)
+		# except Exception as err:
+		# 	print(err)
+		# 	error_text.value = "データベースエラーが発生しました。\nもう一度お願いいたします。"
+		# 	create_form_content.update()
+		# 	return
+		# await view_pop(e)
+
 	async def change_theme(e):
 		page.theme_mode = "light" if page.theme_mode == "dark" else "dark"
 		toggle_dark_light.selected = not toggle_dark_light.selected
@@ -277,15 +312,31 @@ async def main(page: ft.Page):
 			)
 		# アカウントデータ編集ページ
 		if page.route == "/accounts/edit":
+			account_name = edit_data.control.data[1]
+			id = edit_data.control.data[2]
+			mail_address = edit_data.control.data[3]
+			password = edit_data.control.data[4]
+			decrypt_password = ""
+			if password:
+				secret_key = os.environ['CLIENT_SECRET_KEY']
+				decrypt_password = await decrypt(secret_key, password)
+			account_add_form_content.controls[0].value = account_name
+			account_add_form_content.controls[1].controls[0].value = id
+			account_add_form_content.controls[1].controls[1].value = decrypt_password
+			account_add_form_content.controls[2].value = mail_address
+			account_add_form_content.controls[3].controls[1].text = "保存"
+			account_add_form_content.controls[3].controls[1].icon = ft.icons.SAVE
+			account_add_form_content.controls[3].controls[1].on_click = account_edit_submit
+			account_add_form_content.data = edit_data.control.data
 			appbar.title = ft.Text("アカウントデータ編集")
 			page.views.append(
 				ft.View(
 					"/accounts/edit",
 					appbar=appbar,
 					controls=[
-						create_form_content,
-					]
-				)
+						account_add_form_content,
+					],
+				),
 			)
 		# ページ更新
 		page.update()
@@ -327,6 +378,12 @@ async def main(page: ft.Page):
 		global detail_data
 		detail_data = e
 		page.go("/accounts/detail")
+
+	# アカウント編集ページ
+	async def open_account_edit_page(e):
+		global edit_data
+		edit_data = e
+		page.go("/accounts/edit")
 
 	# サービスとそれに関連したデータの削除
 	async def remove_service(e):
@@ -426,7 +483,7 @@ async def main(page: ft.Page):
 					trailing=ft.PopupMenuButton(
 						icon=ft.icons.MORE_VERT,
 						items=[
-							ft.PopupMenuItem(text="編集", icon=ft.icons.EDIT, data=app),
+							ft.PopupMenuItem(text="編集", icon=ft.icons.EDIT, data=app, on_click=open_account_edit_page),
 							ft.PopupMenuItem(text="削除", icon=ft.icons.DELETE, data=app, on_click=remove_confirmation_dialog),
 						],
 						tooltip="メニュー",

@@ -43,5 +43,9 @@ async def get_account_list(serviceUuid):
     return await sql_execution(sql)
 
 async def add_account(serviceUuid, accountName, accountId, accountAddress, accountPassword, updateTime):
-    sql = f"INSERT INTO accountData (serviceUuid, accountName, accountId, accountAddress, accountPassword, updateTime) VALUES ('{serviceUuid}', '{accountName}', '{accountId}', '{accountAddress}', '{accountPassword}', '{updateTime}')"
+    sql = f"INSERT INTO accountData (serviceUuid, accountName, accountId, accountAddress, accountPassword, updateTime) VALUES ('{serviceUuid}', '{accountName}', '{accountId}', '{accountAddress}', '{accountPassword}', '{updateTime}');"
+    return await sql_execution(sql)
+
+async def update_account(serviceUuid, accountName, accountId, accountAddress, accountPassword, updateTime):
+    sql = f"UPDATE serviceData SET accountName = '{accountName}', accountId = '{accountId}', accountAddress = '{accountAddress}', accountPassword = '{accountPassword}', updateTime = '{updateTime}' WHERE serviceUuid is '{serviceUuid}' AND accountName is '{accountName}';"
     return await sql_execution(sql)
