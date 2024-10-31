@@ -19,8 +19,12 @@ async def delete_service(uuid):
     sql = f"DELETE FROM serviceList WHERE uuid = '{uuid}';"
     return await sql_execution(sql)
 
-async def delete_account(serviceUuid):
+async def delete_all_account(serviceUuid):
     sql = f"DELETE FROM accountData WHERE serviceUuid = '{serviceUuid}';"
+    return await sql_execution(sql)
+
+async def delete_account(serviceUuid, accountName):
+    sql = f"DELETE FROM accountData WHERE serviceUuid = '{serviceUuid}' AND accountName = '{accountName}';"
     return await sql_execution(sql)
 
 async def insert_service(uuid, serviceName, serviceDetail):
@@ -32,10 +36,12 @@ async def update_service(uuid, newServiceName, serviceDetail):
     result1 = await sql_execution(sql1)
     sql2 = f"UPDATE serviceList SET serviceName = '{newServiceName}' WHERE uuid IS '{uuid}'"
     result2 = await sql_execution(sql2)
-    sql3 = f"UPDATE accountData SET serviceName = '{newServiceName}' WHERE serviceUuid IS '{uuid}'"
-    result3 = await sql_execution(sql3)
-    return result1, result2, result3
+    return result1, result2
 
 async def get_account_list(serviceUuid):
     sql = f"SELECT * FROM accountData WHERE serviceUuid = '{serviceUuid}';"
+    return await sql_execution(sql)
+
+async def add_account(serviceUuid, accountName, accountId, accountAddress, accountPassword, updateTime):
+    sql = f"INSERT INTO accountData (serviceUuid, accountName, accountId, accountAddress, accountPassword, updateTime) VALUES ('{serviceUuid}', '{accountName}', '{accountId}', '{accountAddress}', '{accountPassword}', '{updateTime}')"
     return await sql_execution(sql)

@@ -1,7 +1,6 @@
 flet run main.py -d
 
-パスワードはhashlibというライブラリを通してハッシュ化して格納する。
-パスワードにはプロファイル名をuuid化したものをプラスしハッシュ化する。
+パスワードは暗号化して格納する。
 
 pip install -U pyinstaller
 flet pack main.py
@@ -19,20 +18,14 @@ serviceList:
 		必須
 accountData:
 	serviceUuid(text):
-		必須	
-	serviceName(text):
 		必須
 	accountName(text):
-		単一
 		必須
 	accountId(text):
-	
+
 	accountAddress(text):
-	
+
 	accountPassword(text):
-		
+
 	updateTime(text):
 		必須
-	
-	
-	

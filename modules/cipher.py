@@ -1,6 +1,6 @@
 from cryptography.fernet import Fernet
 # 鍵作成
-def create_key():
+async def create_key():
     """
     暗号化・復号化する際に使用するKeyを生成します。
 
@@ -17,7 +17,7 @@ def create_key():
     return key.decode('utf-8')
 
 # 暗号化
-def encrypt(key: str, data: str):
+async def encrypt(key: str, data: str):
     """
     keyを使用し与えられたデータを暗号化します。
 
@@ -42,7 +42,7 @@ def encrypt(key: str, data: str):
     return encrypted_pass.decode('utf-8')
 
 # 復号化
-def decrypt(key: str, data: str):
+async def decrypt(key: str, data: str):
     """
     keyを使用し与えられたデータを復号化します。
 

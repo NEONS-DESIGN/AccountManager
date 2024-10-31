@@ -1,4 +1,6 @@
 import configparser
+import datetime
+import os
 import flet as ft
 import uuid
 
@@ -41,10 +43,17 @@ async def main(page: ft.Page):
 		search_filed.width = page.width - 160
 		search_filed.update()
 
-	async def reset():
+	async def create_form_reset():
 		create_form_content.controls[0].value = ""
 		create_form_content.controls[1].value = ""
 		create_form_content.controls[2].controls[0].value = ""
+
+	async def account_add_form_reset():
+		account_add_form_content.controls[0].value = ""
+		account_add_form_content.controls[1].controls[0].value = ""
+		account_add_form_content.controls[1].controls[1].value = ""
+		account_add_form_content.controls[2].value = ""
+		account_add_form_content.controls[3].controls[0].value = ""
 
 	async def search_submit(e):
 		app_list = await get_like_search_service_list(search_filed.value)
@@ -87,6 +96,32 @@ async def main(page: ft.Page):
 			create_form_content.update()
 			return
 		await search_submit(e)
+		await view_pop(e)
+
+	async def add_submit(e):
+		uuid = account_uuid
+		account_name = account_add_form_content.controls[0].value
+		id = account_add_form_content.controls[1].controls[0].value
+		password = account_add_form_content.controls[1].controls[1].value
+		mail_address = account_add_form_content.controls[2].value
+		error_text = account_add_form_content.controls[3].controls[0]
+		if not account_name:
+			error_text.value = "アカウント名が入力されていません。"
+			account_add_form_content.update()
+			return
+		try:
+			secret_key = os.environ['CLIENT_SECRET_KEY']
+			tokyo_tz = datetime.timezone(datetime.timedelta(hours=9))
+			dt = datetime.datetime.now(tokyo_tz)
+			update_time = f"{dt.year}年{dt.month}月{dt.day}日"
+			encrypt_password = await encrypt(secret_key, password)
+			result = await add_account(uuid, account_name, id, mail_address, encrypt_password, update_time)
+		except Exception as err:
+			print(err)
+			error_text.value = "データベースエラーが発生しました。\nもう一度お願いいたします。"
+			account_add_form_content.update()
+			return
+		await generate_account_list()
 		await view_pop(e)
 
 	async def edit_submit(e):
@@ -158,11 +193,12 @@ async def main(page: ft.Page):
 						search_form_content
 					],
 					vertical_alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-					padding = 20
+					padding = 20,
 				)
 			)
 		# アカウントリストページ
 		if page.route == "/accounts":
+			await account_add_form_reset()
 			appbar.title = ft.Text("アカウントリスト")
 			page.views.append(
 				ft.View(
@@ -217,14 +253,19 @@ async def main(page: ft.Page):
 		if page.route == "/accounts/detail":
 			appbar.title = ft.Text("アカウント詳細")
 			detail = detail_data.control
-			account_detail_form_content.controls[0].value = detail.data[2]
-			account_detail_form_content.controls[0].data = detail.data[2]
-			account_detail_form_content.controls[1].controls[0].value = detail.data[3]
-			account_detail_form_content.controls[1].controls[0].data = detail.data[3]
-			account_detail_form_content.controls[1].controls[1].value = detail.data[4]
-			account_detail_form_content.controls[1].controls[1].data = detail.data[4]
-			account_detail_form_content.controls[2].value = detail.data[5]
-			account_detail_form_content.controls[2].data = detail.data[5]
+			password = detail.data[4]
+			decrypt_password = ""
+			if password:
+				secret_key = os.environ['CLIENT_SECRET_KEY']
+				decrypt_password = await decrypt(secret_key, password)
+			account_detail_form_content.controls[0].value = detail.data[1]
+			account_detail_form_content.controls[0].data = detail.data[1]
+			account_detail_form_content.controls[1].controls[0].value = detail.data[2]
+			account_detail_form_content.controls[1].controls[0].data = detail.data[2]
+			account_detail_form_content.controls[1].controls[1].value = decrypt_password
+			account_detail_form_content.controls[1].controls[1].data = decrypt_password
+			account_detail_form_content.controls[2].value = detail.data[3]
+			account_detail_form_content.controls[2].data = detail.data[3]
 			page.views.append(
 				ft.View(
 					"/accounts/detail",
@@ -253,8 +294,9 @@ async def main(page: ft.Page):
 	async def view_pop(e):
 		page.views.pop()
 		page.go("/back")
-		await reset()
 		await data_check()
+		await create_form_reset()
+		await account_add_form_reset()
 
 	# アカウント一覧ページ
 	async def open_service_page(e):
@@ -289,13 +331,23 @@ async def main(page: ft.Page):
 	# サービスとそれに関連したデータの削除
 	async def remove_service(e):
 		e = remove_data
-		await delete_service(e.control.data[0])
-		await delete_account(e.control.data[0])
-		for check in service_list_content.controls:
-			if check.data[0] == e.control.data[0]:
-				await search_submit(e)
-				page.close(confirmation_dialog)
-				return
+		# データ数を見てどのテーブルか判断する
+		if len(e.control.data) == 3: #serviceList
+			await delete_service(e.control.data[0])
+			await delete_all_account(e.control.data[0])
+			for check in service_list_content.controls:
+				if check.data[0] == e.control.data[0]:
+					await search_submit(e)
+					page.close(confirmation_dialog)
+					return
+		elif len(e.control.data) == 6: #accountData
+			await delete_account(e.control.data[0], e.control.data[1])
+			for check in account_list_content.controls:
+				if check.data[0] == e.control.data[0]:
+					await generate_account_list()
+					account_list_content.update()
+					page.close(confirmation_dialog)
+					return
 
 	# サービスとそれに関連したデータの削除確認ダイアログ
 	async def remove_confirmation_dialog(e):
@@ -355,7 +407,7 @@ async def main(page: ft.Page):
 				)
 		else:
 			# 秘密鍵を生成し、環境変数ファイルへ書き込む
-			secret_key = create_key()
+			secret_key = await create_key()
 			set_key(".env", "CLIENT_SECRET_KEY", secret_key)
 			# 表示の切り替え
 			service_list_content.visible = False
@@ -369,13 +421,13 @@ async def main(page: ft.Page):
 		for app in account_list:
 			account_list_content.controls.append(
 				ft.ListTile(
-					title=ft.Text(f"{app[2]}"), #サービス名
-					subtitle=ft.Text(f"最終更新: {app[6]}"), #詳細
+					title=ft.Text(f"{app[1]}"), #サービス名
+					subtitle=ft.Text(f"最終更新: {app[5]}"), #詳細
 					trailing=ft.PopupMenuButton(
 						icon=ft.icons.MORE_VERT,
 						items=[
 							ft.PopupMenuItem(text="編集", icon=ft.icons.EDIT, data=app),
-							ft.PopupMenuItem(text="削除", icon=ft.icons.DELETE, data=app),
+							ft.PopupMenuItem(text="削除", icon=ft.icons.DELETE, data=app, on_click=remove_confirmation_dialog),
 						],
 						tooltip="メニュー",
 					),
@@ -508,16 +560,16 @@ async def main(page: ft.Page):
 				alignment=ft.MainAxisAlignment.END,
 			)
 		],
-		spacing=10
+		spacing=10,
 	)
 
 	account_add_form_content = ft.ListView(
 		controls=[
 			ft.TextField(
-						label="アカウント名",
+						label="アカウント名 (必須)",
 						border=ft.InputBorder.UNDERLINE,
 						max_lines=1,
-						max_length=64,
+						max_length=50,
 						prefix_icon=ft.icons.LABEL,
 					),
 			ft.Row(
@@ -526,7 +578,7 @@ async def main(page: ft.Page):
 						label="ID",
 						border=ft.InputBorder.UNDERLINE,
 						max_lines=1,
-						max_length=128,
+						max_length=200,
 						width=(page.window.width / 2) - 50,
 						prefix_icon=ft.icons.BADGE,
 					),
@@ -534,7 +586,7 @@ async def main(page: ft.Page):
 						label="パスワード",
 						border=ft.InputBorder.UNDERLINE,
 						max_lines=1,
-						max_length=128,
+						max_length=100,
 						width=(page.window.width / 2) - 50,
 						prefix_icon=ft.icons.PASSWORD,
 						password=True,
@@ -547,13 +599,17 @@ async def main(page: ft.Page):
 						label="メールアドレス",
 						border=ft.InputBorder.UNDERLINE,
 						max_lines=1,
-						max_length=256,
+						max_length=200,
 						prefix_icon=ft.icons.MAIL,
 					),
 			ft.Row(
 				controls=[
 					ft.Text(color=ft.colors.RED),
-					ft.ElevatedButton(text="追加", icon=ft.icons.ADD)
+					ft.ElevatedButton(
+						text="追加",
+						icon=ft.icons.ADD,
+						on_click=add_submit,
+					)
 				],
 				alignment=ft.MainAxisAlignment.END,
 			)
@@ -595,7 +651,7 @@ async def main(page: ft.Page):
 						can_reveal_password=True,
 					),
 				],
-				alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+				alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
 			),
 			ft.TextField(
 						label="メールアドレス",
@@ -606,7 +662,7 @@ async def main(page: ft.Page):
 						on_focus=set_clipboard,
 					),
 		],
-		spacing=10,
+		spacing=20,
 		padding=20,
 	)
 
@@ -621,7 +677,7 @@ async def main(page: ft.Page):
 		spacing=10, #gap
 		padding=10,
 		height=page.window.height - 200,
-		divider_thickness = 0.5 #区切り線
+		divider_thickness = 0.5, #区切り線
 	)
 
 	# ---------------------------------
