@@ -9,7 +9,8 @@
 ## About
 
 様々なサービスやアプリケーションの、アカウントを一括に管理するツールです。<br>
-データ管理にはSQLiteを使用し、パスワードは<a href="https://github.com/pyca/cryptography">Cryptography</a>を使用し暗号化され管理が行われます。
+データ管理にはSQLiteを使用し、すべてローカルで処理されます。
+パスワードは<a href="https://github.com/pyca/cryptography">Cryptography</a>を使用し暗号化され管理が行われます。
 
 ## Refusal
 
