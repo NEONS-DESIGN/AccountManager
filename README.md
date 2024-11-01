@@ -1,4 +1,4 @@
-<h1 align="center">PasswordManager</h1>
+<h1 align="center">AccountManager</h1>
 <p align="center"><img width="140" src="https://raw.githubusercontent.com/NEONS-DESIGN/PasswordManager/refs/heads/main/assets/favicon.png?token=GHSAT0AAAAAACZLKWBMHSXURXOSY4OE5V62ZZERT4Q"></p>
 
 <p align="center">
