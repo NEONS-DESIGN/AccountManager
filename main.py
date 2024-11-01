@@ -16,7 +16,7 @@ config = configparser.ConfigParser()
 config.read('./config.ini', 'UTF-8')
 
 async def main(page: ft.Page):
-	page.title = "PasswordManager"  # タイトル
+	page.title = "AccountManager"  # タイトル
 	page.window.width = 640  # 幅
 	page.window.min_width = 640
 	page.window.height = 480  # 高さ

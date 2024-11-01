@@ -2,14 +2,10 @@ Build:
 flet build windows
 
 Pack:
-flet pack main.py --name PasswordManager --icon assets/icon.ico --product-name NeonsDesign --product-version 1.0 --onedir
+flet pack main.py --name AccountManager --icon assets/icon.ico --product-name NeonsDesign --product-version 1.0 --onedir
 
+Debug:
 flet run main.py -d
-
-パスワードは暗号化して格納する。
-
-pip install -U pyinstaller
-flet pack main.py
 
 データベース:
 serviceList:
