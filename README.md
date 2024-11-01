@@ -13,6 +13,7 @@
 パスワードは<a href="https://github.com/pyca/cryptography">Cryptography</a>を使用し暗号化され管理が行われます。
 
 ## Bugs
+
 現在、特定の操作時に予期せぬ秘密鍵の更新が行われ、パスワードの復元が不可能となるバグがあります。
 
 ## Refusal
