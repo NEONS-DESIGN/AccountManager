@@ -1,5 +1,5 @@
 <h1 align="center">AccountManager</h1>
-<p align="center"><img width="140" src="https://raw.githubusercontent.com/NEONS-DESIGN/PasswordManager/refs/heads/main/assets/favicon.png?token=GHSAT0AAAAAACZLKWBMHSXURXOSY4OE5V62ZZERT4Q"></p>
+<p align="center"><img width="140" src="https://raw.githubusercontent.com/NEONS-DESIGN/AccountManager/refs/heads/main/assets/icon.png"></p>
 
 <p align="center">
   <a href="https://flet.dev/"><img src="https://img.shields.io/badge/Flet-v0.24.1-ee3167" alt="/Flet"></a>
