@@ -1,3 +1,9 @@
+Build:
+flet build windows
+
+Pack:
+flet pack main.py --name PasswordManager --icon assets/icon.ico --product-name NeonsDesign --product-version 1.0 --onedir
+
 flet run main.py -d
 
 パスワードは暗号化して格納する。
