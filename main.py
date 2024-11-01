@@ -105,8 +105,15 @@ async def main(page: ft.Page):
 		password = account_add_form_content.controls[1].controls[1].value
 		mail_address = account_add_form_content.controls[2].value
 		error_text = account_add_form_content.controls[3].controls[0]
+		# アカウント名が空の場合エラー出力
 		if not account_name:
 			error_text.value = "アカウント名が入力されていません。"
+			account_add_form_content.update()
+			return
+		account_data = await get_account(uuid, account_name)
+		# 同じサービス内でアカウント名に被りがないか
+		if account_data != []:
+			error_text.value = "すでに使われているアカウント名です。"
 			account_add_form_content.update()
 			return
 		try:
@@ -131,7 +138,7 @@ async def main(page: ft.Page):
 		name = create_form_content.controls[0]
 		detail = create_form_content.controls[1]
 		error_text = create_form_content.controls[2].controls[0]
-		# アプリ・サービス名の空を検出
+		# アカウント名が空の場合エラー出力
 		if not name.value:
 			error_text.value = "アプリ・サービス名を入力してください。"
 			create_form_content.update()
@@ -157,39 +164,45 @@ async def main(page: ft.Page):
 		await view_pop(e)
 
 	async def account_edit_submit(e):
-		print(account_add_form_content.data)
 		uuid = account_add_form_content.data[0]
 		account_name = account_add_form_content.controls[0].value
 		old_account_name = account_add_form_content.data[1]
 		id = account_add_form_content.controls[1].controls[0].value
-		old_id = account_add_form_content.data[2]
 		decrypt_password = account_add_form_content.controls[1].controls[1].value
-		old_password = account_add_form_content.data[4]
 		mail_address = account_add_form_content.controls[2].value
-		old_mail_address = account_add_form_content.data[3]
 
 		error_text = account_add_form_content.controls[3].controls[0]
 
+		# アカウント名が空の場合エラー出力
 		if account_name == "":
 			error_text.value = "アカウント名が入力されていません。"
 			account_add_form_content.update()
 			return
+		# アカウント名が変更されているか
 		if account_name != old_account_name:
-			account_list = await get_account_list(uuid)
-			for check in account_list:
-				if account_name == check[1]:
-					error_text.value = "すでに使われているアカウント名です。"
-					account_add_form_content.update()
-					return
-		# error_text = account_add_form_content[3].controls[0]
-		# try:
-		# 	result = await update_account(uuid, account_name, id, mail_address, password, update_time)
-		# except Exception as err:
-		# 	print(err)
-		# 	error_text.value = "データベースエラーが発生しました。\nもう一度お願いいたします。"
-		# 	create_form_content.update()
-		# 	return
-		# await view_pop(e)
+			account_data = await get_account(uuid, account_name)
+			# 同じサービス内でアカウント名に被りがないか
+			if account_data != []:
+				error_text.value = "すでに使われているアカウント名です。"
+				account_add_form_content.update()
+				return
+		# エラー表示のリセット
+		error_text.value = ""
+		account_add_form_content.update()
+		try:
+			secret_key = os.environ['CLIENT_SECRET_KEY']
+			tokyo_tz = datetime.timezone(datetime.timedelta(hours=9))
+			dt = datetime.datetime.now(tokyo_tz)
+			update_time = f"{dt.year}年{dt.month}月{dt.day}日"
+			encrypt_password = await encrypt(secret_key, decrypt_password)
+			result = await update_account(uuid, account_name, id, mail_address, encrypt_password, update_time, old_account_name)
+		except Exception as err:
+			print(err)
+			error_text.value = "データベースエラーが発生しました。\nもう一度お願いいたします。"
+			create_form_content.update()
+			return
+		await generate_account_list()
+		await view_pop(e)
 
 	async def change_theme(e):
 		page.theme_mode = "light" if page.theme_mode == "dark" else "dark"
@@ -202,7 +215,7 @@ async def main(page: ft.Page):
 			fp.close()
 
 	async def route_change(e):
-		print("Route change:", e.route)
+		# print("Route change:", e.route)
 
 		appbar = ft.AppBar(
 			title=ft.Text(""),
@@ -248,6 +261,9 @@ async def main(page: ft.Page):
 		# アカウント追加ページ
 		if page.route == "/accounts/add":
 			appbar.title = ft.Text("アカウント追加")
+			account_add_form_content.controls[3].controls[1].text = "追加"
+			account_add_form_content.controls[3].controls[1].icon = ft.icons.ADD
+			account_add_form_content.controls[3].controls[1].on_click = add_submit
 			page.views.append(
 				ft.View(
 					"/accounts/add",
@@ -358,7 +374,7 @@ async def main(page: ft.Page):
 
 	# アカウント追加ページ
 	async def open_account_add_page(e):
-		print(account_uuid)
+		# print(account_uuid)
 		page.go("/accounts/add")
 
 	# アプリ・サービス登録ページ
@@ -762,3 +778,11 @@ async def main(page: ft.Page):
 
 if __name__ == "__main__":
 	ft.app(target=main, assets_dir="assets")
+
+# ---------------------------------
+# Version: 1.0
+# Last update: 2024/11/01
+# Author: NeonsDesign(https://github.com/NEONS-DESIGN)
+# Powered by: Flet(https://flet.dev/)
+# License: MIT License
+# ---------------------------------
