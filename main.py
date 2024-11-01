@@ -17,6 +17,9 @@ config.read('./config.ini', 'UTF-8')
 
 async def main(page: ft.Page):
 	page.title = "AccountManager"  # タイトル
+	page.window.top = config.get('Settings', 'window_position_top')
+	page.window.left = config.get('Settings', 'window_position_left')
+	page.theme_mode = config.get('Settings', 'theme_mode')
 	page.window.width = 640  # 幅
 	page.window.min_width = 640
 	page.window.height = 480  # 高さ
@@ -529,6 +532,16 @@ async def main(page: ft.Page):
 			page.overlay.append(ft.SnackBar(ft.Text(f"データがありません。"), open=True)),
 		page.update()
 
+	# ウィンドウの位置を保存
+	async def set_window_position(e):
+		if e.data == ft.WindowEventType.MOVED.value:
+			print(page.window.top, page.window.left)
+			config.set('Settings', 'window_position_top', str(page.window.top))
+			config.set('Settings', 'window_position_left', str(page.window.left))
+			with open('config.ini', 'w') as fp:
+				config.write(fp)
+				fp.close()
+
 	# ---------------------------------
     # コンテンツ定義
     # ---------------------------------
@@ -762,6 +775,8 @@ async def main(page: ft.Page):
 	page.on_view_pop = view_pop
 	# windowのサイズが変更されたら
 	page.on_resized = window_resize
+	# windowでなにかイベントが起こったら
+	page.window.on_event = set_window_position
 
 	# ---------------------------------
 	# 起動時の処理
