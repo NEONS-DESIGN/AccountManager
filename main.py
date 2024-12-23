@@ -20,10 +20,10 @@ async def main(page: ft.Page):
 	page.window.top = config.get('Settings', 'window_position_top')
 	page.window.left = config.get('Settings', 'window_position_left')
 	page.theme_mode = config.get('Settings', 'theme_mode')
-	page.window.width = 640  # 幅
-	page.window.min_width = 640
-	page.window.height = 480  # 高さ
-	page.window.min_height = 480
+	page.window.width = 736  # 幅
+	page.window.min_width = 736
+	page.window.height = 552  # 高さ
+	page.window.min_height = 552
 	page.theme = ft.Theme(color_scheme_seed="Blue")
 	page.theme_mode = config.get('Settings', 'theme_mode')
 	page.window.resizable = True  # ウィンドウサイズ変更可否
@@ -44,7 +44,9 @@ async def main(page: ft.Page):
     # ---------------------------------
 	def window_resize(e):
 		search_filed.width = page.width - 160
-		search_filed.update()
+		service_list_content.height = page.window.height - 200
+		account_list_content.height = page.window.height - 200
+		page.update()
 
 	async def create_form_reset():
 		create_form_content.controls[0].value = ""
@@ -535,7 +537,6 @@ async def main(page: ft.Page):
 	# ウィンドウの位置を保存
 	async def set_window_position(e):
 		if e.data == ft.WindowEventType.MOVED.value:
-			print(page.window.top, page.window.left)
 			config.set('Settings', 'window_position_top', str(page.window.top))
 			config.set('Settings', 'window_position_left', str(page.window.left))
 			with open('config.ini', 'w') as fp:
@@ -795,8 +796,8 @@ if __name__ == "__main__":
 	ft.app(target=main, assets_dir="assets")
 
 # ---------------------------------
-# Version: 1.0
-# Last update: 2024/11/01
+# Version: 1.2
+# Last update: 2024/11/02
 # Author: NeonsDesign(https://github.com/NEONS-DESIGN)
 # Powered by: Flet(https://flet.dev/)
 # License: MIT License

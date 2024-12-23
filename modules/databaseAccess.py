@@ -4,7 +4,7 @@ from modules.sqlite import sql_execution
 # データベースアクセス関数定義
 # ---------------------------------
 async def get_service_list():
-    sql = f"SELECT * FROM serviceList;"
+    sql = f"SELECT * FROM serviceList ORDER BY serviceName;"
     return await sql_execution(sql)
 
 async def get_search_service_list(serviceName):
@@ -12,7 +12,7 @@ async def get_search_service_list(serviceName):
     return await sql_execution(sql)
 
 async def get_like_search_service_list(serviceName):
-    sql = f"SELECT * FROM serviceList WHERE serviceName LIKE '%{serviceName}%';"
+    sql = f"SELECT * FROM serviceList WHERE serviceName LIKE '%{serviceName}%' ORDER BY serviceName;"
     return await sql_execution(sql)
 
 async def delete_service(uuid):

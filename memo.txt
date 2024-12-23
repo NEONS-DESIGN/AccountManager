@@ -2,7 +2,7 @@ Build:
 flet build windows
 
 Pack:
-flet pack main.py --name AccountManager --icon assets/icon.ico --product-name NeonsDesign --product-version 1.0 --onedir
+flet pack main.py --name AccountManager --icon assets/icon.ico --product-name NeonsDesign --product-version 1.2 --onedir
 
 Debug:
 flet run main.py -d
